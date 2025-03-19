@@ -1,13 +1,15 @@
 //import liraries
 import React, { Component } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, StatusBar } from 'react-native';
+import Appbar from '../components/Appbar';
 
 // create a component
 const MyComponent = () => {
     return (
-        <View style={styles.container}>
-            <Text>MyComponent</Text>
-        </View>
+        <SafeAreaView>
+            <StatusBar barStyle="dark-content" />
+            <Appbar title="Products" showBack />
+        </SafeAreaView>
     );
 };
 
@@ -15,7 +17,7 @@ const MyComponent = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#2c3e50',
+        backgroundColor: '#FCFCFC',
     },
 });
 
