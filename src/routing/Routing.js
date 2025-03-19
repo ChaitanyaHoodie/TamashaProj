@@ -4,6 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import HomeScreen from '../screens/HomeScreen';
 import CartScreen from '../screens/CartScreen';
 import ProductDetails from '../screens/ProductDetails';
+import Icon from 'react-native-vector-icons/MaterialIcons'; // Or any other icon set you prefer
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -18,7 +19,24 @@ const forFade = ({ current }) => ({
 // Main tab navigation
 const TabNavigator = () => {
   return (
-    <Tab.Navigator>
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName;
+
+          if (route.name === 'Home') {
+            iconName = 'home';
+          } else if (route.name === 'Cart') {
+            iconName = 'shopping-cart';
+          }
+
+          // You can return any component here
+          return <Icon name={iconName} size={size} color={color} />;
+        },
+        tabBarActiveTintColor: '#007bff',
+        tabBarInactiveTintColor: 'gray',
+      })}
+    >
       <Tab.Screen 
         name="Home" 
         component={HomeScreen} 
@@ -33,7 +51,7 @@ const TabNavigator = () => {
   );
 };
 
-// Use default export instead of named export
+// Default export
 const Routing = () => {
   return (
     <Stack.Navigator

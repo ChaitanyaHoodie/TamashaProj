@@ -2,6 +2,7 @@
 import React, { Component } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, StatusBar } from 'react-native';
 import Appbar from '../components/Appbar';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 // create a component
 const MyComponent = () => {
