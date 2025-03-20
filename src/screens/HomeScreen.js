@@ -1,19 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  StatusBar,
-  FlatList,
-  ActivityIndicator,
-  RefreshControl,
-  TouchableOpacity,
-  Modal,
-  ScrollView
+import { 
+  View, Text, FlatList, TouchableOpacity, Modal, 
+  ActivityIndicator, SafeAreaView, StatusBar, 
+  RefreshControl, ScrollView ,StyleSheet
 } from 'react-native';
-import axios from 'axios';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { fetchProducts } from '../services/api';
 import ProductCard from '../components/ProductCard';
 import Appbar from '../components/Appbar';
 
@@ -27,102 +19,125 @@ const HomeScreen = ({ navigation }) => {
   const [hasMore, setHasMore] = useState(true);
   
   // Sort states
-  const [sortOption, setSortOption] = useState(''); // 'price_asc', 'price_desc'
+  const [sortOption, setSortOption] = useState('');
   const [sortModalVisible, setSortModalVisible] = useState(false);
 
+  // Filter states
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const [selectedCategories, setSelectedCategories] = useState([]);
+  const [minRating, setMinRating] = useState(0);
+  const [categories, setCategories] = useState([]);
+
   // Fetch products function
-  const fetchProducts = async (pageNumber = 1, refresh = false) => {
+  const loadProducts = async (pageNumber = 1, refresh = false) => {
     if (refresh) {
       setRefreshing(true);
     } else if (pageNumber === 1) {
       setLoading(true);
     }
     
-    const limit = 10;
-    const skip = (pageNumber - 1) * limit;
-    
     try {
-      const response = await axios.get(
-        `https://dummyjson.com/products?limit=${limit}&skip=${skip}`
-      );
-      
-      // The API returns data in the format { products: [...], total: 100, skip: 10, limit: 10 }
-      const newProducts = response.data.products;
-      const total = response.data.total;
+      const result = await fetchProducts(pageNumber);
+      const newProducts = result.products;
       
       if (newProducts.length === 0) {
         setHasMore(false);
       } else {
         if (refresh || pageNumber === 1) {
           setProducts(newProducts);
-          setFilteredProducts(newProducts);
+          
+          // Extract unique categories for filter options
+          const uniqueCategories = [...new Set(newProducts.map(product => product.category))];
+          setCategories(uniqueCategories);
+          
+          // Apply filters and sorting
+          applyFiltersAndSort(newProducts);
         } else {
           const updatedProducts = [...products, ...newProducts];
           setProducts(updatedProducts);
-          applySorting(updatedProducts);
+          
+          // Update categories
+          const allCategories = [...new Set(updatedProducts.map(product => product.category))];
+          setCategories(allCategories);
+          
+          // Apply filters and sorting
+          applyFiltersAndSort(updatedProducts);
         }
-        // Check if we've reached the end
-        setHasMore((skip + limit) < total);
+        setHasMore(result.hasMore);
       }
       setError(null);
       
     } catch (err) {
-      setError('Failed to fetch products. Please try again.');
-      console.error('Error fetching products:', err);
+      setError(err.message || 'Failed to fetch products. Please try again.');
+      console.error('Error loading products:', err);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  // Apply sorting to products
-  const applySorting = useCallback((productsToSort = products) => {
-    // Start with the current products
-    let sorted = [...productsToSort];
+  const applyFiltersAndSort = useCallback((productsToFilter = products) => {
+    // First apply filters
+    let filtered = [...productsToFilter];
     
-    // Apply sorting
-    if (sortOption === 'price_asc') {
-      sorted.sort((a, b) => a.price - b.price);
-    } else if (sortOption === 'price_desc') {
-      sorted.sort((a, b) => b.price - a.price);
+    // Filter by category
+    if (selectedCategories.length > 0) {
+      filtered = filtered.filter(product => selectedCategories.includes(product.category));
     }
     
-    setFilteredProducts(sorted);
-  }, [sortOption, products]);
+    // Filter by rating
+    if (minRating > 0) {
+      filtered = filtered.filter(product => product.rating >= minRating);
+    }
+    
+    // Then apply sorting
+    if (sortOption === 'price_asc') {
+      filtered.sort((a, b) => a.price - b.price);
+    } else if (sortOption === 'price_desc') {
+      filtered.sort((a, b) => b.price - a.price);
+    }
+    
+    setFilteredProducts(filtered);
+  }, [sortOption, selectedCategories, minRating, products]);
 
-  // Reset sorting
-  const resetSorting = () => {
-    setSortOption('');
-    setFilteredProducts(products);
+  const resetFilters = () => {
+    setSelectedCategories([]);
+    setMinRating(0);
+    applyFiltersAndSort();
   };
 
-  // Initial fetch on component mount
+  const resetSorting = () => {
+    setSortOption('');
+    applyFiltersAndSort();
+  };
+
+  const resetAll = () => {
+    resetFilters();
+    resetSorting();
+  };
+
   useEffect(() => {
-    fetchProducts();
+    loadProducts();
   }, []);
 
-  // Apply sorting whenever sort parameters change
   useEffect(() => {
-    applySorting();
-  }, [sortOption, applySorting]);
+    applyFiltersAndSort();
+  }, [sortOption, selectedCategories, minRating, applyFiltersAndSort]);
 
-  // Handle refresh pull-down
   const handleRefresh = () => {
     setPage(1);
     setHasMore(true);
-    fetchProducts(1, true);
+    loadProducts(1, true);
   };
 
-  // Handle loading more products
   const handleLoadMore = () => {
     if (!loading && hasMore) {
       const nextPage = page + 1;
       setPage(nextPage);
-      fetchProducts(nextPage);
+      loadProducts(nextPage);
     }
   };
 
-  // Render each product item
   const renderItem = ({ item }) => (
     <ProductCard 
       product={item}
@@ -130,7 +145,6 @@ const HomeScreen = ({ navigation }) => {
     />
   );
 
-  // Render footer with loading indicator
   const renderFooter = () => {
     if (!loading || refreshing) return null;
     return (
@@ -140,12 +154,23 @@ const HomeScreen = ({ navigation }) => {
     );
   };
 
+  const toggleCategorySelection = (category) => {
+    if (selectedCategories.includes(category)) {
+      setSelectedCategories(selectedCategories.filter(c => c !== category));
+    } else {
+      setSelectedCategories([...selectedCategories, category]);
+    }
+  };
+
+  const hasActiveFilters = () => {
+    return selectedCategories.length > 0 || minRating > 0;
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
       <Appbar title="Products" />
       
-      {/* Sort Control */}
       <View style={styles.controlsContainer}>
         <TouchableOpacity 
           style={styles.controlButton} 
@@ -154,20 +179,45 @@ const HomeScreen = ({ navigation }) => {
           <Icon name="keyboard-double-arrow-down" size={20} color="#007bff" />
           <Text style={styles.controlText}>Sort</Text>
         </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.controlButton} 
+          onPress={() => setFilterModalVisible(true)}
+        >
+          <Icon name="filter-list" size={20} color="#007bff" />
+          <Text style={styles.controlText}>Filter</Text>
+        </TouchableOpacity>
       </View>
       
-      {/* Active Sort Display */}
-      {sortOption && (
+      {(sortOption || hasActiveFilters()) && (
         <View style={styles.activeFiltersContainer}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={styles.filterChip}>
-              <Text style={styles.filterChipText}>
-                Sort: {sortOption === 'price_asc' ? 'Price ↑' : 'Price ↓'}
-              </Text>
-            </View>
+            {sortOption && (
+              <View style={styles.filterChip}>
+                <Text style={styles.filterChipText}>
+                  Sort: {sortOption === 'price_asc' ? 'Price ↑' : 'Price ↓'}
+                </Text>
+              </View>
+            )}
             
-            <TouchableOpacity style={styles.clearButton} onPress={resetSorting}>
-              <Text style={styles.clearButtonText}>Clear</Text>
+            {selectedCategories.map(category => (
+              <View key={category} style={styles.filterChip}>
+                <Text style={styles.filterChipText}>
+                  Category: {category}
+                </Text>
+              </View>
+            ))}
+            
+            {minRating > 0 && (
+              <View style={styles.filterChip}>
+                <Text style={styles.filterChipText}>
+                  Rating: {minRating}+ ★
+                </Text>
+              </View>
+            )}
+            
+            <TouchableOpacity style={styles.clearButton} onPress={resetAll}>
+              <Text style={styles.clearButtonText}>Clear All</Text>
             </TouchableOpacity>
           </ScrollView>
         </View>
@@ -199,7 +249,13 @@ const HomeScreen = ({ navigation }) => {
           }
           ListFooterComponent={renderFooter}
           ListEmptyComponent={
-            <Text style={styles.emptyText}>No products available</Text>
+            <View style={styles.emptyContainer}>
+              <Icon name="sentiment-dissatisfied" size={48} color="#ccc" />
+              <Text style={styles.emptyText}>No products match your filters</Text>
+              <TouchableOpacity style={styles.resetButton} onPress={resetAll}>
+                <Text style={styles.resetButtonText}>Reset Filters</Text>
+              </TouchableOpacity>
+            </View>
           }
         />
       )}
@@ -264,15 +320,151 @@ const HomeScreen = ({ navigation }) => {
           </View>
         </View>
       </Modal>
+      
+      {/* Filter Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={filterModalVisible}
+        onRequestClose={() => setFilterModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Filter Products</Text>
+              <TouchableOpacity onPress={() => setFilterModalVisible(false)}>
+                <Icon name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+            
+            {/* Category Filter */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>Categories</Text>
+              <ScrollView contentContainerStyle={styles.categoriesContainer}>
+                {categories.map(category => (
+                  <TouchableOpacity
+                    key={category}
+                    style={[
+                      styles.categoryChip,
+                      selectedCategories.includes(category) && styles.categoryChipSelected
+                    ]}
+                    onPress={() => toggleCategorySelection(category)}
+                  >
+                    <Text
+                      style={[
+                        styles.categoryChipText,
+                        selectedCategories.includes(category) && styles.categoryChipTextSelected
+                      ]}
+                    >
+                      {category}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+            
+            {/* Rating Filter */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>Minimum Rating</Text>
+              <View style={styles.ratingContainer}>
+                {[0, 1, 2, 3, 4, 5].map(rating => (
+                  <TouchableOpacity
+                    key={rating}
+                    style={[
+                      styles.ratingChip,
+                      minRating === rating && styles.ratingChipSelected
+                    ]}
+                    onPress={() => setMinRating(rating)}
+                  >
+                    <Text
+                      style={[
+                        styles.ratingChipText,
+                        minRating === rating && styles.ratingChipTextSelected
+                      ]}
+                    >
+                      {rating === 0 ? 'Any' : `${rating}+`}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+            
+            {/* Action Buttons */}
+            <View style={styles.filterActions}>
+              <TouchableOpacity 
+                style={styles.resetFiltersButton}
+                onPress={resetFilters}
+              >
+                <Text style={styles.resetFiltersButtonText}>Reset</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.applyButton}
+                onPress={() => setFilterModalVisible(false)}
+              >
+                <Text style={styles.applyButtonText}>Apply</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
 
-// Define styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FCFCFC',
+    backgroundColor: '#f8f9fa',
+  },
+  controlsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e1e4e8',
+  },
+  controlButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 16,
+    paddingVertical: 8,
+  },
+  controlText: {
+    marginLeft: 4,
+    fontSize: 14,
+    color: '#007bff',
+  },
+  activeFiltersContainer: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e1e4e8',
+  },
+  filterChip: {
+    backgroundColor: '#e8f4ff',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginRight: 8,
+  },
+  filterChipText: {
+    fontSize: 12,
+    color: '#007bff',
+  },
+  clearButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: '#f8f9fa',
+    borderWidth: 1,
+    borderColor: '#dee2e6',
+  },
+  clearButtonText: {
+    fontSize: 12,
+    color: '#6c757d',
   },
   productList: {
     padding: 8,
@@ -282,126 +474,171 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  footerLoader: {
-    padding: 20,
-    alignItems: 'center',
-  },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: 16,
   },
   errorText: {
-    color: 'red',
-    fontSize: 16,
+    color: '#dc3545',
     textAlign: 'center',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
   },
   emptyText: {
-    textAlign: 'center',
-    padding: 20,
     fontSize: 16,
-    color: '#666',
+    color: '#6c757d',
+    textAlign: 'center',
+    marginTop: 8,
   },
-  controlsContainer: {
-    flexDirection: 'row',
-    padding: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-    backgroundColor: '#fff',
+  resetButton: {
+    marginTop: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#007bff',
+    borderRadius: 4,
   },
-  controlButton: {
-    flexDirection: 'row',
+  resetButtonText: {
+    color: '#fff',
+    fontSize: 14,
+  },
+  footerLoader: {
+    padding: 16,
     alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 15,
-    padding: 8,
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  controlText: {
-    marginLeft: 5,
-    color: '#007bff',
-    fontWeight: '500',
-  },
-  activeFiltersContainer: {
-    backgroundColor: '#f5f5f5',
-    padding: 10,
-  },
-  filterChip: {
-    backgroundColor: '#e0f0ff',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    marginRight: 8,
-  },
-  filterChipText: {
-    color: '#007bff',
-    fontSize: 12,
-  },
-  clearButton: {
-    backgroundColor: '#ff6b6b',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  clearButtonText: {
-    color: 'white',
-    fontSize: 12,
   },
   modalContainer: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
     padding: 16,
+    maxHeight: '80%',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 16,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: '#333',
   },
   sortOptions: {
-    marginTop: 5,
-    marginBottom: 15,
+    marginBottom: 16,
   },
   sortOption: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: '#e1e4e8',
   },
   sortOptionSelected: {
     backgroundColor: '#f0f7ff',
   },
   sortOptionText: {
     fontSize: 16,
+    color: '#333',
+  },
+  filterSection: {
+    marginBottom: 16,
+  },
+  filterSectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    color: '#333',
+  },
+  categoriesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  categoryChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    backgroundColor: '#f8f9fa',
+    borderWidth: 1,
+    borderColor: '#dee2e6',
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  categoryChipSelected: {
+    backgroundColor: '#007bff',
+    borderColor: '#007bff',
+  },
+  categoryChipText: {
+    fontSize: 14,
+    color: '#495057',
+  },
+  categoryChipTextSelected: {
+    color: '#fff',
+  },
+  ratingContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  ratingChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+    backgroundColor: '#f8f9fa',
+    borderWidth: 1,
+    borderColor: '#dee2e6',
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  ratingChipSelected: {
+    backgroundColor: '#007bff',
+    borderColor: '#007bff',
+  },
+  ratingChipText: {
+    fontSize: 14,
+    color: '#495057',
+  },
+  ratingChipTextSelected: {
+    color: '#fff',
+  },
+  filterActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  resetFiltersButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#dee2e6',
+    backgroundColor: '#f8f9fa',
+  },
+  resetFiltersButtonText: {
+    fontSize: 14,
+    color: '#6c757d',
   },
   applyButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 4,
     backgroundColor: '#007bff',
-    alignSelf: 'flex-end',
-    marginTop: 10,
   },
   applyButtonText: {
-    color: 'white',
-    fontWeight: '500',
+    fontSize: 14,
+    color: '#fff',
   },
 });
 
-// Export the component
 export default HomeScreen;

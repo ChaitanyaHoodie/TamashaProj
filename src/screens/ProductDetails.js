@@ -22,7 +22,7 @@ const ProductDetails = ({ route }) => {
 
    const navigation = useNavigation();
   // Extract product data from route params
-  const { allData: product } = route.params;
+  const { allData: product } = route?.params;
   console.log(product);
   const dispatch = useDispatch();
 
@@ -38,7 +38,7 @@ const ProductDetails = ({ route }) => {
 
   const handleAddToCart = () => {
     dispatch(addToCart({ ...product, quantity }));
-    navigation.navigate('CartScreen');
+    navigation.navigate('Cart');
   };
 
   // Handle case where product data might be missing
