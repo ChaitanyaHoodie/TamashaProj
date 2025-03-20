@@ -17,6 +17,7 @@ const CartScreen = () => {
   // Use Redux for state management
   const cartItems = useSelector(state => state.cart.items);
   const dispatch = useDispatch();
+  console.log(cartItems);
 
   // Load cart data from AsyncStorage when component mounts
   useEffect(() => {
@@ -78,10 +79,10 @@ const CartScreen = () => {
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <View style={styles.cartItem}>
-              <Image source={{ uri: item.image }} style={styles.itemImage} />
+              <Image source={{ uri: item.images[0] }} style={styles.itemImage} />
               <View style={styles.itemDetails}>
-                <Text style={styles.itemName}>{item.name}</Text>
-                <Text style={styles.itemPrice}>₹{item.price}</Text>
+                <Text style={styles.itemName}>{item.title}</Text>
+                <Text style={styles.itemPrice}>${item.price}</Text>
                 <View style={styles.quantityContainer}>
                   <TouchableOpacity onPress={() => handleDecreaseQuantity(item.id)}>
                     <Icon name="minus-circle-outline" size={24} color="#555" />
@@ -102,7 +103,7 @@ const CartScreen = () => {
 
       {cartItems.length > 0 && (
         <View style={styles.footer}>
-          <Text style={styles.totalText}>Total: ₹{totalPrice.toFixed(2)}</Text>
+          <Text style={styles.totalText}>Total: ${totalPrice.toFixed(2)}</Text>
           <TouchableOpacity 
             style={styles.checkoutButton}
             onPress={() => alert('Proceeding to checkout...')}
@@ -118,9 +119,9 @@ const CartScreen = () => {
 
 const styles = StyleSheet.create({
   container: {
-   
     padding: 16,
     backgroundColor: '#f9f9f9',
+    marginBottom: 100,
   },
   emptyCart: {
     flex: 1,
@@ -184,7 +185,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   checkoutButton: {
-    backgroundColor: '#ff6b6b',
+    backgroundColor: '#007bff',
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 8,

@@ -1,13 +1,15 @@
+// src/routing/Routing.js
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import HomeScreen from '../screens/HomeScreen';
 import CartScreen from '../screens/CartScreen';
 import ProductDetails from '../screens/ProductDetails';
-import Icon from 'react-native-vector-icons/MaterialIcons'; // Or any other icon set you prefer
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
+const CartStack = createStackNavigator();
 
 // Custom transition animation
 const forFade = ({ current }) => ({
@@ -15,6 +17,34 @@ const forFade = ({ current }) => ({
     opacity: current.progress,
   },
 });
+
+// Create a dedicated Cart stack to avoid circular references
+const CartStackNavigator = () => {
+  return (
+    <CartStack.Navigator
+      screenOptions={{
+        headerShown: false
+      }}
+    >
+      <CartStack.Screen name="CartMain" component={CartScreen} />
+    </CartStack.Navigator>
+  );
+};
+
+// Home stack for nested navigation
+const HomeStackNavigator = () => {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        cardStyleInterpolator: forFade,
+        headerShown: false,
+      }}
+    >
+      <Stack.Screen name="HomeMain" component={HomeScreen} />
+      <Stack.Screen name="ProductDetails" component={ProductDetails} />
+    </Stack.Navigator>
+  );
+};
 
 // Main tab navigation
 const TabNavigator = () => {
@@ -30,7 +60,6 @@ const TabNavigator = () => {
             iconName = 'shopping-cart';
           }
 
-          // You can return any component here
           return <Icon name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: '#007bff',
@@ -39,19 +68,19 @@ const TabNavigator = () => {
     >
       <Tab.Screen 
         name="Home" 
-        component={HomeScreen} 
+        component={HomeStackNavigator} 
         options={{ headerShown: false }}
       />
       <Tab.Screen 
         name="Cart" 
-        component={CartScreen} 
+        component={CartStackNavigator} 
         options={{ headerShown: false }}
       />
     </Tab.Navigator>
   );
 };
 
-// Default export
+// Root navigator
 const Routing = () => {
   return (
     <Stack.Navigator
@@ -61,9 +90,6 @@ const Routing = () => {
       }}
     >
       <Stack.Screen name="Main" component={TabNavigator} />
-      <Stack.Screen name="ProductDetails" component={ProductDetails} />
-      <Stack.Screen name="CartScreen" component={CartScreen} />
-
     </Stack.Navigator>
   );
 };
