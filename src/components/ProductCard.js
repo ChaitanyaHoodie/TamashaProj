@@ -24,7 +24,7 @@ const ProductCard = ({ product, onPress }) => {
 
   const handleAddToCart = () => {
     dispatch(addToCart({ ...product, quantity: 1 }));
-    navigation.navigate('Cart');
+    // navigation.navigate('Cart');
   };
   
   const { title, price, thumbnail, images, rating } = product;

@@ -62,6 +62,8 @@ const Routing = () => {
     >
       <Stack.Screen name="Main" component={TabNavigator} />
       <Stack.Screen name="ProductDetails" component={ProductDetails} />
+      <Stack.Screen name="CartScreen" component={CartScreen} />
+
     </Stack.Navigator>
   );
 };

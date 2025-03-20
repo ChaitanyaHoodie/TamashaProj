@@ -14,10 +14,13 @@ import Appbar from '../components/Appbar';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useDispatch } from 'react-redux';
 import { addToCart } from '../redux/cartSlice';
+import { useNavigation } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
 
-const ProductDetails = ({ route, navigation }) => {
+const ProductDetails = ({ route }) => {
+
+   const navigation = useNavigation();
   // Extract product data from route params
   const { allData: product } = route.params;
   console.log(product);
@@ -35,13 +38,14 @@ const ProductDetails = ({ route, navigation }) => {
 
   const handleAddToCart = () => {
     dispatch(addToCart({ ...product, quantity }));
+    navigation.navigate('CartScreen');
   };
 
   // Handle case where product data might be missing
   if (!product) {
     return (
       <SafeAreaView style={styles.container}>
-        <Appbar title="Product Details" showBack onBackPress={() => navigation.goBack()} />
+        <Appbar title="Product Details" />
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>Product information not available</Text>
         </View>
@@ -52,7 +56,7 @@ const ProductDetails = ({ route, navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
-      <Appbar title="Product Details" showBack onBackPress={() => navigation.goBack()} />
+      <Appbar title="Product Details"/>
       
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.imageContainer}>
