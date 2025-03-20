@@ -6,7 +6,6 @@ import {
   Image, 
   ScrollView, 
   TouchableOpacity, 
-  SafeAreaView,
   StatusBar,
   Dimensions
 } from 'react-native';
@@ -15,6 +14,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useDispatch } from 'react-redux';
 import { addToCart } from '../redux/cartSlice';
 import { useNavigation } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
@@ -45,6 +45,7 @@ const ProductDetails = ({ route }) => {
   if (!product) {
     return (
       <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="dark-content" />
         <Appbar title="Product Details" />
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>Product information not available</Text>
@@ -121,7 +122,6 @@ const ProductDetails = ({ route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FCFCFC',
   },
   scrollContent: {
     flexGrow: 1,

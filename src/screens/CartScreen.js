@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, Image, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Image, FlatList, TouchableOpacity, StyleSheet, StatusBar } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useSelector, useDispatch } from 'react-redux';
@@ -67,6 +67,7 @@ const CartScreen = () => {
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
+      <StatusBar barStyle="dark-content" />
      <Appbar title="Your Cart" />
      <View style={styles.container}>
       {cartItems.length === 0 ? (

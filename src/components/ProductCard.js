@@ -13,7 +13,7 @@ import { addToCart } from '../redux/cartSlice';
 import { useNavigation } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
-const cardWidth = (width - 32) / 2; // 2 columns with 16px padding on each side
+const cardWidth = (width - 32) / 2;
 
 const ProductCard = ({ product, onPress }) => {
 

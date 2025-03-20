@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   View, Text, FlatList, TouchableOpacity, Modal, 
-  ActivityIndicator, SafeAreaView, StatusBar, 
+  ActivityIndicator, StatusBar, 
   RefreshControl, ScrollView ,StyleSheet
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { fetchProducts } from '../services/api';
 import ProductCard from '../components/ProductCard';
 import Appbar from '../components/Appbar';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const HomeScreen = ({ navigation }) => {
   const [products, setProducts] = useState([]);
@@ -415,7 +416,6 @@ const HomeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
   },
   controlsContainer: {
     flexDirection: 'row',
@@ -467,7 +467,7 @@ const styles = StyleSheet.create({
     color: '#6c757d',
   },
   productList: {
-    padding: 8,
+    // padding: 8,
   },
   loaderContainer: {
     flex: 1,
