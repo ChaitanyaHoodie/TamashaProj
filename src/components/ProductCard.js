@@ -8,13 +8,24 @@ import {
   Dimensions 
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { useDispatch } from 'react-redux';
+import { addToCart } from '../redux/cartSlice';
+import { useNavigation } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
 const cardWidth = (width - 32) / 2; // 2 columns with 16px padding on each side
 
 const ProductCard = ({ product, onPress }) => {
+
+  const navigation = useNavigation();
   // Handle case where product might be undefined
   if (!product) return null;
+  const dispatch = useDispatch();
+
+  const handleAddToCart = () => {
+    dispatch(addToCart({ ...product, quantity: 1 }));
+    navigation.navigate('Cart');
+  };
   
   const { title, price, thumbnail, images, rating } = product;
   const imageUrl = thumbnail || (images && images.length > 0 ? images[0] : null);
@@ -45,7 +56,7 @@ const ProductCard = ({ product, onPress }) => {
         
         <Text style={styles.price}>${price?.toFixed(2)}</Text>
         
-        <TouchableOpacity style={styles.addToCartButton}>
+        <TouchableOpacity style={styles.addToCartButton} onPress={handleAddToCart}>
           <Icon name="add-shopping-cart" size={18} color="#FFF" />
           <Text style={styles.addToCartText}>Add to Cart</Text>
         </TouchableOpacity>

@@ -12,6 +12,8 @@ import {
 } from 'react-native';
 import Appbar from '../components/Appbar';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { useDispatch } from 'react-redux';
+import { addToCart } from '../redux/cartSlice';
 
 const { width } = Dimensions.get('window');
 
@@ -19,6 +21,7 @@ const ProductDetails = ({ route, navigation }) => {
   // Extract product data from route params
   const { allData: product } = route.params;
   console.log(product);
+  const dispatch = useDispatch();
 
   const imageUrl = product?.thumbnail || (product?.images && product?.images.length > 0 ? product?.images[0] : null);
   const [quantity, setQuantity] = useState(1);
@@ -31,9 +34,7 @@ const ProductDetails = ({ route, navigation }) => {
   };
 
   const handleAddToCart = () => {
-    // This would connect to your Redux store to add the item to cart
-    console.log('Added to cart:', { ...product, quantity });
-    // Show a success message or navigate to cart
+    dispatch(addToCart({ ...product, quantity }));
   };
 
   // Handle case where product data might be missing
@@ -81,7 +82,24 @@ const ProductDetails = ({ route, navigation }) => {
           <Text style={styles.description}>{product.description}</Text>
           
           <View style={styles.divider} />
-          
+          <Text style={styles.sectionTitle}>Quantity</Text>
+          <View style={styles.quantitySelector}>
+            <TouchableOpacity 
+              style={styles.quantityButton} 
+              onPress={() => handleQuantityChange(-1)}
+            >
+              <Icon name="remove" size={20} color="#007bff" />
+            </TouchableOpacity>
+            
+            <Text style={styles.quantityText}>{quantity}</Text>
+            
+            <TouchableOpacity 
+              style={styles.quantityButton} 
+              onPress={() => handleQuantityChange(1)}
+            >
+              <Icon name="add" size={20} color="#007bff" />
+            </TouchableOpacity>
+          </View>
           
           <TouchableOpacity 
             style={styles.addToCartButton}
