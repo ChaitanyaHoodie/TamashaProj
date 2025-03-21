@@ -1,6 +1,5 @@
 import React, { useCallback } from 'react';
 import {
-  SafeAreaView,
   StatusBar,
   View,
   Text,
@@ -17,6 +16,7 @@ import { useProducts } from '../hooks/ProductFetchHook';
 import { useProductFilters } from '../hooks/filterSortingHook';
 import Appbar from '../components/Appbar';
 import ProductCard from '../components/ProductCard';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 
 const HomeScreen = ({ navigation }) => {
