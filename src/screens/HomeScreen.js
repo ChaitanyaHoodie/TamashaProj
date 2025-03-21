@@ -1,171 +1,138 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  View, Text, FlatList, TouchableOpacity, Modal, 
-  ActivityIndicator, StatusBar, 
-  RefreshControl, ScrollView ,StyleSheet
+import React, { useCallback } from 'react';
+import {
+  SafeAreaView,
+  StatusBar,
+  View,
+  Text,
+  TouchableOpacity,
+  FlatList,
+  Modal,
+  ScrollView,
+  ActivityIndicator,
+  RefreshControl,
+  StyleSheet
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { fetchProducts } from '../services/api';
-import ProductCard from '../components/ProductCard';
+import { useProducts } from '../hooks/ProductFetchHook';
+import { useProductFilters } from '../hooks/filterSortingHook';
 import Appbar from '../components/Appbar';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import ProductCard from '../components/ProductCard';
+
 
 const HomeScreen = ({ navigation }) => {
-  const [products, setProducts] = useState([]);
-  const [filteredProducts, setFilteredProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [page, setPage] = useState(1);
-  const [refreshing, setRefreshing] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  
-  // Sort states
-  const [sortOption, setSortOption] = useState('');
-  const [sortModalVisible, setSortModalVisible] = useState(false);
+  // Use our custom hooks
+  const {
+    products,
+    loading,
+    error,
+    refreshing,
+    hasMore,
+    categories,
+    handleRefresh,
+    handleLoadMore
+  } = useProducts();
 
-  // Filter states
-  const [filterModalVisible, setFilterModalVisible] = useState(false);
-  const [selectedCategories, setSelectedCategories] = useState([]);
-  const [minRating, setMinRating] = useState(0);
-  const [categories, setCategories] = useState([]);
+  const {
+    sortOption,
+    setSortOption,
+    selectedCategories,
+    minRating,
+    setMinRating,
+    sortModalVisible,
+    setSortModalVisible,
+    filterModalVisible,
+    setFilterModalVisible,
+    hasActiveFilters,
+    toggleCategorySelection,
+    resetFilters,
+    resetSorting,
+    resetAll,
+    filteredProducts
+  } = useProductFilters(products);
 
-  // Fetch products function
-  const loadProducts = async (pageNumber = 1, refresh = false) => {
-    if (refresh) {
-      setRefreshing(true);
-    } else if (pageNumber === 1) {
-      setLoading(true);
-    }
-    
-    try {
-      const result = await fetchProducts(pageNumber);
-      const newProducts = result.products;
-      
-      if (newProducts.length === 0) {
-        setHasMore(false);
-      } else {
-        if (refresh || pageNumber === 1) {
-          setProducts(newProducts);
-          
-          // Extract unique categories for filter options
-          const uniqueCategories = [...new Set(newProducts.map(product => product.category))];
-          setCategories(uniqueCategories);
-          
-          // Apply filters and sorting
-          applyFiltersAndSort(newProducts);
-        } else {
-          const updatedProducts = [...products, ...newProducts];
-          setProducts(updatedProducts);
-          
-          // Update categories
-          const allCategories = [...new Set(updatedProducts.map(product => product.category))];
-          setCategories(allCategories);
-          
-          // Apply filters and sorting
-          applyFiltersAndSort(updatedProducts);
-        }
-        setHasMore(result.hasMore);
-      }
-      setError(null);
-      
-    } catch (err) {
-      setError(err.message || 'Failed to fetch products. Please try again.');
-      console.error('Error loading products:', err);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  const applyFiltersAndSort = useCallback((productsToFilter = products) => {
-    // First apply filters
-    let filtered = [...productsToFilter];
-    
-    // Filter by category
-    if (selectedCategories.length > 0) {
-      filtered = filtered.filter(product => selectedCategories.includes(product.category));
-    }
-    
-    // Filter by rating
-    if (minRating > 0) {
-      filtered = filtered.filter(product => product.rating >= minRating);
-    }
-    
-    // Then apply sorting
-    if (sortOption === 'price_asc') {
-      filtered.sort((a, b) => a.price - b.price);
-    } else if (sortOption === 'price_desc') {
-      filtered.sort((a, b) => b.price - a.price);
-    }
-    
-    setFilteredProducts(filtered);
-  }, [sortOption, selectedCategories, minRating, products]);
-
-  const resetFilters = () => {
-    setSelectedCategories([]);
-    setMinRating(0);
-    applyFiltersAndSort();
-  };
-
-  const resetSorting = () => {
-    setSortOption('');
-    applyFiltersAndSort();
-  };
-
-  const resetAll = () => {
-    resetFilters();
-    resetSorting();
-  };
-
-  useEffect(() => {
-    loadProducts();
-  }, []);
-
-  useEffect(() => {
-    applyFiltersAndSort();
-  }, [sortOption, selectedCategories, minRating, applyFiltersAndSort]);
-
-  const handleRefresh = () => {
-    setPage(1);
-    setHasMore(true);
-    loadProducts(1, true);
-  };
-
-  const handleLoadMore = () => {
-    if (!loading && hasMore) {
-      const nextPage = page + 1;
-      setPage(nextPage);
-      loadProducts(nextPage);
-    }
-  };
-
-  const renderItem = ({ item }) => (
+  // Memoize render functions to prevent unnecessary re-renders
+  const renderItem = useCallback(({ item }) => (
     <ProductCard 
       product={item}
-      onPress={() => navigation.navigate('ProductDetails', { productId: item.id, allData: item })}
+      onPress={() => navigation.navigate('ProductDetails', { 
+        productId: item.id, 
+        allData: item 
+      })}
     />
-  );
+  ), [navigation]);
 
-  const renderFooter = () => {
+  const renderFooter = useCallback(() => {
     if (!loading || refreshing) return null;
     return (
       <View style={styles.footerLoader}>
         <ActivityIndicator size="small" color="#007bff" />
       </View>
     );
-  };
+  }, [loading, refreshing]);
 
-  const toggleCategorySelection = (category) => {
-    if (selectedCategories.includes(category)) {
-      setSelectedCategories(selectedCategories.filter(c => c !== category));
-    } else {
-      setSelectedCategories([...selectedCategories, category]);
-    }
-  };
+  // Active filters component
+  const renderActiveFilters = useCallback(() => {
+    if (!(sortOption || hasActiveFilters())) return null;
+    
+    return (
+      <View style={styles.activeFiltersContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {sortOption && (
+            <View style={styles.filterChip}>
+              <Text style={styles.filterChipText}>
+                Sort: {sortOption === 'price_asc' ? 'Price ↑' : 'Price ↓'}
+              </Text>
+            </View>
+          )}
+          
+          {selectedCategories.map(category => (
+            <View key={category} style={styles.filterChip}>
+              <Text style={styles.filterChipText}>
+                Category: {category}
+              </Text>
+            </View>
+          ))}
+          
+          {minRating > 0 && (
+            <View style={styles.filterChip}>
+              <Text style={styles.filterChipText}>
+                Rating: {minRating}+ ★
+              </Text>
+            </View>
+          )}
+          
+          <TouchableOpacity style={styles.clearButton} onPress={resetAll}>
+            <Text style={styles.clearButtonText}>Clear All</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
+    );
+  }, [sortOption, selectedCategories, minRating, hasActiveFilters, resetAll]);
 
-  const hasActiveFilters = () => {
-    return selectedCategories.length > 0 || minRating > 0;
-  };
+  // Loading and error states
+  if (loading && products.length === 0) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="dark-content" />
+        <Appbar title="Products" />
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator size="large" color="#007bff" />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error && products.length === 0) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="dark-content" />
+        <Appbar title="Products" />
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -176,6 +143,8 @@ const HomeScreen = ({ navigation }) => {
         <TouchableOpacity 
           style={styles.controlButton} 
           onPress={() => setSortModalVisible(true)}
+          accessibilityLabel="Sort products"
+          accessibilityHint="Opens sorting options"
         >
           <Icon name="keyboard-double-arrow-down" size={20} color="#007bff" />
           <Text style={styles.controlText}>Sort</Text>
@@ -184,82 +153,46 @@ const HomeScreen = ({ navigation }) => {
         <TouchableOpacity 
           style={styles.controlButton} 
           onPress={() => setFilterModalVisible(true)}
+          accessibilityLabel="Filter products"
+          accessibilityHint="Opens filtering options"
         >
           <Icon name="filter-list" size={20} color="#007bff" />
           <Text style={styles.controlText}>Filter</Text>
         </TouchableOpacity>
       </View>
       
-      {(sortOption || hasActiveFilters()) && (
-        <View style={styles.activeFiltersContainer}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {sortOption && (
-              <View style={styles.filterChip}>
-                <Text style={styles.filterChipText}>
-                  Sort: {sortOption === 'price_asc' ? 'Price ↑' : 'Price ↓'}
-                </Text>
-              </View>
-            )}
-            
-            {selectedCategories.map(category => (
-              <View key={category} style={styles.filterChip}>
-                <Text style={styles.filterChipText}>
-                  Category: {category}
-                </Text>
-              </View>
-            ))}
-            
-            {minRating > 0 && (
-              <View style={styles.filterChip}>
-                <Text style={styles.filterChipText}>
-                  Rating: {minRating}+ ★
-                </Text>
-              </View>
-            )}
-            
-            <TouchableOpacity style={styles.clearButton} onPress={resetAll}>
-              <Text style={styles.clearButtonText}>Clear All</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
-      )}
+      {renderActiveFilters()}
       
-      {loading && products.length === 0 ? (
-        <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color="#007bff" />
-        </View>
-      ) : error ? (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={filteredProducts}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id.toString()}
-          numColumns={2}
-          contentContainerStyle={styles.productList}
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.5}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              colors={['#007bff']}
-            />
-          }
-          ListFooterComponent={renderFooter}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Icon name="sentiment-dissatisfied" size={48} color="#ccc" />
-              <Text style={styles.emptyText}>No products match your filters</Text>
-              <TouchableOpacity style={styles.resetButton} onPress={resetAll}>
-                <Text style={styles.resetButtonText}>Reset Filters</Text>
-              </TouchableOpacity>
-            </View>
-          }
-        />
-      )}
+      <FlatList
+        data={filteredProducts}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.id.toString()}
+        numColumns={2}
+        contentContainerStyle={styles.productList}
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.5}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={['#007bff']}
+          />
+        }
+        ListFooterComponent={renderFooter}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Icon name="sentiment-dissatisfied" size={48} color="#ccc" />
+            <Text style={styles.emptyText}>No products match your filters</Text>
+            <TouchableOpacity 
+              style={styles.resetButton} 
+              onPress={resetAll}
+              accessibilityLabel="Reset all filters"
+            >
+              <Text style={styles.resetButtonText}>Reset Filters</Text>
+            </TouchableOpacity>
+          </View>
+        }
+      />
       
       {/* Sort Modal */}
       <Modal
@@ -272,7 +205,10 @@ const HomeScreen = ({ navigation }) => {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Sort Products</Text>
-              <TouchableOpacity onPress={() => setSortModalVisible(false)}>
+              <TouchableOpacity 
+                onPress={() => setSortModalVisible(false)}
+                accessibilityLabel="Close sort options"
+              >
                 <Icon name="close" size={24} color="#333" />
               </TouchableOpacity>
             </View>
@@ -284,6 +220,7 @@ const HomeScreen = ({ navigation }) => {
                   !sortOption && styles.sortOptionSelected
                 ]}
                 onPress={() => setSortOption('')}
+                accessibilityLabel="Default sort order"
               >
                 <Text style={styles.sortOptionText}>Default</Text>
                 {!sortOption && <Icon name="menu" size={18} color="#007bff" />}
@@ -295,9 +232,10 @@ const HomeScreen = ({ navigation }) => {
                   sortOption === 'price_asc' && styles.sortOptionSelected
                 ]}
                 onPress={() => setSortOption('price_asc')}
+                accessibilityLabel="Price from low to high"
               >
                 <Text style={styles.sortOptionText}>Price: Low to High</Text>
-                {sortOption === 'price_asc' && <Icon name="arrow-downward" size={18} color="#007bff" /> }
+                {sortOption === 'price_asc' && <Icon name="arrow-downward" size={18} color="#007bff" />}
               </TouchableOpacity>
               
               <TouchableOpacity
@@ -306,6 +244,7 @@ const HomeScreen = ({ navigation }) => {
                   sortOption === 'price_desc' && styles.sortOptionSelected
                 ]}
                 onPress={() => setSortOption('price_desc')}
+                accessibilityLabel="Price from high to low"
               >
                 <Text style={styles.sortOptionText}>Price: High to Low</Text>
                 {sortOption === 'price_desc' && <Icon name="arrow-upward" size={18} color="#007bff" />}
@@ -315,6 +254,7 @@ const HomeScreen = ({ navigation }) => {
             <TouchableOpacity 
               style={styles.applyButton}
               onPress={() => setSortModalVisible(false)}
+              accessibilityLabel="Apply sort settings"
             >
               <Text style={styles.applyButtonText}>Apply</Text>
             </TouchableOpacity>
@@ -333,7 +273,10 @@ const HomeScreen = ({ navigation }) => {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Filter Products</Text>
-              <TouchableOpacity onPress={() => setFilterModalVisible(false)}>
+              <TouchableOpacity 
+                onPress={() => setFilterModalVisible(false)}
+                accessibilityLabel="Close filter options"
+              >
                 <Icon name="close" size={24} color="#333" />
               </TouchableOpacity>
             </View>
@@ -350,6 +293,7 @@ const HomeScreen = ({ navigation }) => {
                       selectedCategories.includes(category) && styles.categoryChipSelected
                     ]}
                     onPress={() => toggleCategorySelection(category)}
+                    accessibilityLabel={`Category ${category} ${selectedCategories.includes(category) ? 'selected' : 'not selected'}`}
                   >
                     <Text
                       style={[
@@ -376,6 +320,7 @@ const HomeScreen = ({ navigation }) => {
                       minRating === rating && styles.ratingChipSelected
                     ]}
                     onPress={() => setMinRating(rating)}
+                    accessibilityLabel={`${rating === 0 ? 'Any' : rating + '+'} star rating ${minRating === rating ? 'selected' : ''}`}
                   >
                     <Text
                       style={[
@@ -395,6 +340,7 @@ const HomeScreen = ({ navigation }) => {
               <TouchableOpacity 
                 style={styles.resetFiltersButton}
                 onPress={resetFilters}
+                accessibilityLabel="Reset all filters"
               >
                 <Text style={styles.resetFiltersButtonText}>Reset</Text>
               </TouchableOpacity>
@@ -402,6 +348,7 @@ const HomeScreen = ({ navigation }) => {
               <TouchableOpacity 
                 style={styles.applyButton}
                 onPress={() => setFilterModalVisible(false)}
+                accessibilityLabel="Apply filters"
               >
                 <Text style={styles.applyButtonText}>Apply</Text>
               </TouchableOpacity>
@@ -412,6 +359,8 @@ const HomeScreen = ({ navigation }) => {
     </SafeAreaView>
   );
 };
+
+
 
 const styles = StyleSheet.create({
   container: {
@@ -641,4 +590,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default HomeScreen;
+export default React.memo(HomeScreen);

@@ -7,7 +7,8 @@ import {
   initializeCart, 
   increaseQuantity, 
   decreaseQuantity, 
-  removeFromCart 
+  removeFromCart,
+  clearCart
 } from '../redux/cartSlice';
 import App from '../../App';
 import Appbar from '../components/Appbar';
@@ -61,6 +62,10 @@ const CartScreen = () => {
   const handleRemoveItem = (id) => {
     dispatch(removeFromCart(id));
   };
+  
+  const handleClearCart = () => {
+    dispatch(clearCart());
+  }
 
   // Calculate total price
   const totalPrice = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
@@ -107,7 +112,7 @@ const CartScreen = () => {
           <Text style={styles.totalText}>Total: ${totalPrice.toFixed(2)}</Text>
           <TouchableOpacity 
             style={styles.checkoutButton}
-            onPress={() => alert('Proceeding to checkout...')}
+            onPress={() => handleClearCart()}
           >
             <Text style={styles.checkoutButtonText}>Checkout</Text>
           </TouchableOpacity>
