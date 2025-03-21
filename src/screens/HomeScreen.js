@@ -20,13 +20,11 @@ import ProductCard from '../components/ProductCard';
 
 
 const HomeScreen = ({ navigation }) => {
-  // Use our custom hooks
   const {
     products,
     loading,
     error,
     refreshing,
-    hasMore,
     categories,
     handleRefresh,
     handleLoadMore
@@ -45,7 +43,6 @@ const HomeScreen = ({ navigation }) => {
     hasActiveFilters,
     toggleCategorySelection,
     resetFilters,
-    resetSorting,
     resetAll,
     filteredProducts
   } = useProductFilters(products);
@@ -590,4 +587,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default React.memo(HomeScreen);
+export default HomeScreen
