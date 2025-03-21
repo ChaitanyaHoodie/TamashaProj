@@ -75,23 +75,10 @@ When you want to forcefully reload, for example to reset the state of your app, 
 
 ## Congratulations! :tada:
 
-You've successfully run and modified your React Native App. :partying_face:
+![homeScreen1](https://github.com/user-attachments/assets/f87624fe-b092-4e01-8d7f-2f270fa7d596) ![Pdetails1](https://github.com/user-attachments/assets/f4975f50-52aa-423c-ae8b-12a75fbb5975)
 
-### Now what?
 
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
 
-# Troubleshooting
+![filter1](https://github.com/user-attachments/assets/17392ede-30fb-4e51-8799-2971b49da878) ![Cart1](https://github.com/user-attachments/assets/5d9008dd-ec24-4bc7-bf88-c23d5b15600a)
 
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
 
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
